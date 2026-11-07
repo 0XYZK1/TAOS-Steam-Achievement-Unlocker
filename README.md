@@ -1,98 +1,97 @@
+<div align="center">
+
 # TAOS
 
-Ein Steam-Achievement-Manager für Windows. TAOS liest den echten lokalen
-Fortschritt aus den Steam-Cachedateien und schreibt Änderungen über die
-Steamworks-API zurück. Kein Web-Login, kein API-Key nötig – Steam muss nur
-laufen.
+*A T A O S Production.*  
+*The Art of Software.*
 
-## Was es kann
+[![Latest Release](https://img.shields.io/github/v/release/0XYZK1/TAOS-Steam-Achievement-Unlocker?style=flat-square&label=latest%20release&color=black)](https://github.com/0XYZK1/TAOS-Steam-Achievement-Unlocker/releases/latest)
+[![Version](https://img.shields.io/badge/V1.0.0-black?style=flat-square)](https://github.com/0XYZK1/TAOS-Steam-Achievement-Unlocker/releases)
+[![License](https://img.shields.io/badge/LICENSE-black?style=flat-square)](LICENSE)
+[![Custom](https://img.shields.io/badge/CUSTOM-black?style=flat-square)](LICENSE)
 
-- Spielebibliothek aus installierten Manifesten, lokalen Caches und optional
-  der Steam-Web-API aufbauen
-- Achievements einzeln oder komplett freischalten bzw. sperren
-- Original-Backup pro Steam-Account, automatisch beim ersten Scan
-- „Reset to Original“ stellt exakt den gespeicherten Zustand wieder her
-- Live-Suche nach Spielen mit Teilnamen, Bild und Fortschritt
-- Schneller Start durch einen kleinen Fortschritts-Cache
+</div>
 
-## Start
+---
+
+A minimalist Steam achievement manager for Windows. TAOS reads the real local
+progress from Steam's cache and writes changes back through Steamworks. No web
+login, no API key, no browser automation.
+
+---
+
+## ✦ QUICKSTART
+
+1. Download the latest `TAOS.exe` from [Releases](https://github.com/0XYZK1/TAOS-Steam-Achievement-Unlocker/releases/latest).
+2. Run it. Python is not required.
+3. Keep Steam running and close the game while changing achievements.
+4. Pick a game, toggle what you need, done.
+
+---
+
+## ✦ WHAT IT DOES
+
+- Reads your actual Steam library and achievement state
+- Unlocks or locks achievements individually or per game
+- Creates an original backup per Steam account on first launch
+- Restores that backup exactly, including mixed states
+- Searches games by partial name and shows live progress
+- Writes through the same Steamworks path SAM uses
+
+---
+
+## ✦ BACKUP
+
+The first full scan stores the current state in:
+
+```
+%LOCALAPPDATA%\TAOS\taos_initial_snapshot_<SteamID64>.json
+```
+
+That file is never touched by normal unlock, lock or toggle operations. Before
+the first write to a game without a backup, TAOS reads and saves the current
+state first.
+
+`Reset to Original` really means reset. Achievements earned after the backup
+will be removed too. The confirmation dialog says so.
+
+---
+
+## ✦ BUILD FROM SOURCE
 
 ```powershell
-.venv\Scripts\python.exe main.py
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\python main.py
 ```
 
-Alternativ `run.bat` doppelklicken. Benötigt Python 3.10+ und die Pakete aus
-`requirements.txt`.
+To build the executable:
 
-## Live-Modus
-
-TAOS sucht automatisch nach einer passenden `steam_api64.dll` in den
-installierten Steam-Spielen. Wenn du eine bestimmte DLL verwenden willst,
-kannst du sie unter `assets/steam_api64.dll` ablegen. Die DLL gehört nicht ins
-Repository.
-
-Vor dem Schreiben:
-
-- Steam muss laufen und eingeloggt sein.
-- Das Spiel sollte geschlossen sein.
-- Das Backup muss geschrieben werden können; sonst bricht TAOS den
-  Schreibvorgang ab.
-
-Steam braucht nach dem Setzen manchmal ein paar Sekunden, bis die Anzeige
-aktualisiert ist.
-
-## Backup
-
-Beim ersten vollständigen Scan wird für jedes Spiel mit Achievement-Daten der
-aktuelle Stand gesichert:
-
-```
-taos_initial_snapshot_<SteamID64>.json
+```powershell
+.venv\Scripts\pip install pyinstaller
+.venv\Scripts\python -m PyInstaller --onefile --windowed --name TAOS ^
+  --add-data "html.html;." --collect-all webview --collect-all clr_loader ^
+  --collect-all pythonnet main.py
 ```
 
-Das Backup wird durch Unlock, Lock oder einzelne Toggles nicht verändert. Vor
-dem ersten Schreibzugriff auf ein Spiel ohne Backup liest TAOS den aktuellen
-Stand ein und sichert ihn zuerst. Ein altes, account-loses Backup wird beim
-ersten Start automatisch übernommen.
+---
 
-Wichtig: „Reset to Original“ ist ein echter Reset auf den Stand des Backups.
-Achievements, die du danach regulär verdient hast, werden dabei ebenfalls
-entfernt. Das steht auch im Bestätigungsdialog.
+## ✦ NOTES
 
-## Bekannte Grenzen
+- Windows 10/11 only.
+- Steam must be running. The game should be closed while writing.
+- The required `steam_api64.dll` is located automatically in your installed
+  Steam games. It is not bundled with TAOS.
+- Achievements added by later DLC are not part of the original backup.
+- Unlocking achievements may violate Steam or game rules. Use at your own risk.
 
-- Windows-only (Registry, `tasklist`, `steam_api64.dll`).
-- Achievements, die erst nach dem Backup durch DLC dazukommen, sind nicht im
-  Backup enthalten.
-- Manche Spiele behandeln Achievements serverseitig; dort kann ein Schreib-
-  vorgang fehlschlagen. TAOS meldet das dann pro Spiel.
-- Die lokale Steam-Cache-Datei kann minimal hinterherhängen. Wenn ein Spiel
-  noch nie gestartet wurde, greift TAOS auf Live-/Online-Daten zurück.
+---
 
-## Aufbau
+<div align="center">
 
-```
-main.py               Einstiegspunkt
-html.html             Oberfläche
-taos/
-  config.py           Pfade und Konstanten
-  engine.py           Bibliothek, Achievements, Schreibvorgänge
-  bridge.py           JS-API
-  worker.py           Steamworks-Subprozess
-  data/               Backups und Caches
-  steam/              Steam-Dateien und Web-API
-```
+**TAOS**  
+*Design. Code. Silence.*
 
-## Vor dem Veröffentlichen
+© 2026 Dox / Xyk
 
-`taos_initial_snapshot*.json`, `taos_appnames_cache.json` und
-`taos_progress_cache.json` enthalten persönliche Bibliotheksdaten und sind in
-`.gitignore` eingetragen. Die Steamworks-DLL wird nicht mitgeliefert.
-
-Achievements freizuschalten kann gegen Steam- oder Spielregeln verstoßen.
-Nutzung auf eigene Verantwortung.
-
-## Lizenz
-
-MIT
-
+</div>
