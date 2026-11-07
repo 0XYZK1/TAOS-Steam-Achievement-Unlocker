@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAOS — Steam Achievement Unlocker</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-void: #040404;
+            --bg-obsidian: #090909;
+            --bg-panel: #101010;
+            --bg-elevated: #161616;
+
+            --ink-pure: #FFFFFF;
+            --ink-silver: #D4D4D4;
+            --ink-ash: #888888;
+            --ink-charcoal: #444444;
+
+            --line-faint: #1A1A1A;
+            --line-etched: #282828;
+            --line-sharp: #4E4E4E;
+
+            --font-serif: 'Cinzel', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+            --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-void);
+            color: var(--ink-pure);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--line-etched);
+        }
+
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-void); border-left: 1px solid var(--line-faint); }
+        ::-webkit-scrollbar-thumb { background: var(--line-sharp); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--ink-pure); }
+
+        /* top bar */
+        .titlebar {
+            height: 56px;
+            background: var(--bg-obsidian);
+            border-bottom: 1px solid var(--line-etched);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0 0 22px;
+            z-index: 10;
+        }
+
+        .brand-cluster {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            font-family: var(--font-serif);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            color: var(--ink-pure);
+        }
+
+        .brand-sub {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.14em;
+            color: var(--ink-ash);
+        }
+
+        /* quick commands */
+        .quick-commands {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-void);
+            padding: 5px 8px;
+            border: 1px solid var(--line-etched);
+        }
+
+        .qc-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--ink-ash);
+            padding: 0 8px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .btn-qc {
+            background: var(--bg-panel);
+            border: 1px solid var(--line-sharp);
+            color: var(--ink-pure);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 7px 13px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .btn-qc:hover {
+            background: var(--ink-pure);
+            color: var(--bg-void);
+            border-color: var(--ink-pure);
+        }
+
+        .btn-qc.muted {
+            border-color: var(--line-etched);
+            color: var(--ink-silver);
+        }
+
+        .btn-qc.muted:hover {
+            background: var(--bg-elevated);
+            color: var(--ink-pure);
+            border-color: var(--ink-pure);
+        }
+
+        .btn-qc.restore {
+            border-color: var(--ink-pure);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .btn-qc.restore:hover {
+            background: var(--ink-pure);
+            color: var(--bg-void);
+        }
+
+        .window-controls {
+            display: flex;
+            height: 100%;
+        }
+
+        .win-btn {
+            width: 48px;
+            height: 100%;
+            background: transparent;
+            border: none;
+            border-left: 1px solid var(--line-faint);
+            color: var(--ink-ash);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .win-btn:hover { background: var(--bg-elevated); color: var(--ink-pure); }
+        .win-btn.close:hover { background: var(--ink-pure); color: var(--bg-void); }
+
+        /* workspace */
+        .workspace {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 390px 1fr;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            background: var(--bg-obsidian);
+            border-right: 1px solid var(--line-etched);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line-etched);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .sidebar-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--ink-silver);
+        }
+
+        .input-etched {
+            width: 100%;
+            background: var(--bg-void);
+            border: 1px solid var(--line-etched);
+            color: var(--ink-pure);
+            font-family: var(--font-sans);
+            font-size: 12px;
+            padding: 8px 11px;
+            outline: none;
+            transition: var(--transition-fast);
+        }
+
+        .input-etched:focus {
+            border-color: var(--ink-pure);
+            background: var(--bg-panel);
+        }
+
+        .add-game-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* live search results */
+        .add-results {
+            display: none;
+            flex-direction: column;
+            border: 1px solid var(--line-etched);
+            background: var(--bg-void);
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .add-results.open {
+            display: flex;
+        }
+
+        .add-result {
+            display: grid;
+            grid-template-columns: 86px 1fr;
+            gap: 10px;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--line-faint);
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .add-result:last-child { border-bottom: none; }
+        .add-result:hover { background: var(--bg-panel); }
+
+        .add-result img {
+            width: 86px;
+            height: 40px;
+            object-fit: cover;
+            border: 1px solid var(--line-etched);
+            background: var(--bg-void);
+        }
+
+        .add-result-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .add-result-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .add-result-name {
+            font-size: 12px;
+            color: var(--ink-silver);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .add-result:hover .add-result-name { color: var(--ink-pure); }
+
+        .add-result-badge {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--ink-ash);
+            white-space: nowrap;
+        }
+
+        .add-result-sub {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--ink-charcoal);
+        }
+
+        .add-empty {
+            padding: 10px;
+            font-size: 11px;
+            color: var(--ink-ash);
+            font-family: var(--font-mono);
+        }
+
+        .btn-small {
+            background: var(--bg-panel);
+            border: 1px solid var(--line-etched);
+            color: var(--ink-silver);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 0 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: var(--transition-fast);
+        }
+
+        .btn-small:hover {
+            border-color: var(--ink-pure);
+            color: var(--ink-pure);
+        }
+
+        /* game list */
+        .games-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--line-faint);
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: grid;
+            grid-template-columns: 92px 1fr;
+            gap: 12px;
+            align-items: center;
+            position: relative;
+            background: transparent;
+        }
+
+        /* active marker */
+        .game-item::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            background: var(--ink-pure);
+            transition: var(--transition-fast);
+        }
+
+        .game-item:hover { background: var(--bg-panel); }
+        .game-item.active { background: var(--bg-elevated); }
+        .game-item.active::before { width: 4px; }
+
+        .game-thumb-wrap {
+            width: 92px;
+            height: 43px;
+            background: var(--bg-void);
+            border: 1px solid var(--line-etched);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .game-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(25%) contrast(1.05);
+            transition: var(--transition-fast);
+        }
+
+        .game-item:hover .game-thumb,
+        .game-item.active .game-thumb {
+            filter: grayscale(0%) contrast(1.1);
+        }
+
+        .game-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow: hidden;
+        }
+
+        .game-item-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .game-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink-silver);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .game-item:hover .game-name,
+        .game-item.active .game-name {
+            color: var(--ink-pure);
+        }
+
+        .game-count-badge {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--ink-ash);
+            flex-shrink: 0;
+        }
+
+        /* progress row */
+        .game-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mini-bar-track {
+            flex: 1;
+            height: 4px;
+            background: var(--bg-void);
+            border: 1px solid var(--line-etched);
+            overflow: hidden;
+        }
+
+        .mini-bar-fill {
+            height: 100%;
+            background: var(--ink-pure);
+            width: 0%;
+            transition: width var(--transition-smooth);
+        }
+
+        .game-pct {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--ink-pure);
+            min-width: 32px;
+            text-align: right;
+        }
+
+        /* game stage */
+        .stage {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .empty-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            gap: 12px;
+        }
+
+        .empty-title {
+            font-family: var(--font-serif);
+            font-size: 22px;
+            letter-spacing: 0.18em;
+        }
+
+        .empty-subtitle {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--ink-ash);
+            max-width: 440px;
+            line-height: 1.6;
+        }
+
+        .game-stage {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .game-stage.visible { display: flex; }
+
+        .stage-hero {
+            padding: 24px 32px 20px 32px;
+            border-bottom: 1px solid var(--line-etched);
+            background: var(--bg-obsidian);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            position: relative;
+        }
+
+        .hero-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .hero-game-cluster {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .hero-banner-img {
+            width: 184px;
+            height: 86px;
+            object-fit: cover;
+            border: 1px solid var(--line-sharp);
+            background: var(--bg-void);
+        }
+
+        .hero-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .hero-meta-tag {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--ink-ash);
+        }
+
+        .hero-game-title {
+            font-family: var(--font-serif);
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: var(--ink-pure);
+        }
+
+        .hero-stats-box {
+            border: 1px solid var(--line-etched);
+            background: var(--bg-void);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--ink-pure);
+        }
+
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.14em;
+            color: var(--ink-ash);
+            text-transform: uppercase;
+        }
+
+        .stat-sep {
+            width: 1px;
+            height: 28px;
+            background: var(--line-etched);
+        }
+
+        .engraved-progress-track {
+            width: 100%;
+            height: 7px;
+            background: var(--bg-void);
+            border: 1px solid var(--line-sharp);
+            padding: 1px;
+        }
+
+        .engraved-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--ink-pure);
+            transition: width 350ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .stage-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 1px;
+            background: var(--line-etched);
+            border: 1px solid var(--line-etched);
+        }
+
+        .tab-btn {
+            background: var(--bg-void);
+            border: none;
+            color: var(--ink-ash);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: var(--ink-pure);
+            color: var(--bg-void);
+            font-weight: 600;
+        }
+
+        .bulk-actions-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            background: var(--bg-void);
+            border: 1px solid var(--line-sharp);
+            color: var(--ink-pure);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .btn-action:hover {
+            background: var(--ink-pure);
+            color: var(--bg-void);
+        }
+
+        .btn-action.secondary {
+            border-color: var(--line-etched);
+            color: var(--ink-silver);
+        }
+
+        .btn-action.secondary:hover {
+            background: var(--bg-elevated);
+            color: var(--ink-pure);
+            border-color: var(--line-sharp);
+        }
+
+        /* achievement cards */
+        .achievements-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px 36px 32px;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
+            gap: 12px;
+        }
+
+        .ach-card {
+            background: var(--bg-obsidian);
+            border: 1px solid var(--line-etched);
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            transition: var(--transition-fast);
+        }
+
+        .ach-card:hover {
+            border-color: var(--line-sharp);
+            background: var(--bg-panel);
+        }
+
+        .ach-card.unlocked {
+            border-left: 3px solid var(--ink-pure);
+            background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(12,12,12,0.95) 100%);
+        }
+
+        .ach-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            overflow: hidden;
+        }
+
+        .ach-icon {
+            width: 46px;
+            height: 46px;
+            border: 1px solid var(--line-etched);
+            background: var(--bg-void);
+            flex-shrink: 0;
+            object-fit: cover;
+        }
+
+        .ach-card:not(.unlocked) .ach-icon {
+            filter: grayscale(100%) opacity(0.55);
+        }
+
+        .ach-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+        }
+
+        .ach-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink-silver);
+        }
+
+        .ach-card.unlocked .ach-title {
+            color: var(--ink-pure);
+        }
+
+        .ach-desc {
+            font-size: 12px;
+            color: var(--ink-ash);
+            line-height: 1.4;
+        }
+
+        .ach-toggle-btn {
+            flex-shrink: 0;
+            width: 92px;
+            height: 34px;
+            background: var(--bg-void);
+            border: 1px solid var(--line-etched);
+            color: var(--ink-ash);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .ach-toggle-btn:hover {
+            border-color: var(--ink-pure);
+            color: var(--ink-pure);
+        }
+
+        .ach-card.unlocked .ach-toggle-btn {
+            background: var(--ink-pure);
+            border-color: var(--ink-pure);
+            color: var(--bg-void);
+            font-weight: 600;
+        }
+
+        .ach-card.unlocked .ach-toggle-btn:hover {
+            background: transparent;
+            color: var(--ink-pure);
+        }
+
+        /* modals */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(3, 3, 3, 0.88);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal-box {
+            width: 100%;
+            max-width: 520px;
+            background: var(--bg-obsidian);
+            border: 1px solid var(--ink-pure);
+            padding: 30px 34px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .modal-title {
+            font-family: var(--font-serif);
+            font-size: 20px;
+            letter-spacing: 0.08em;
+        }
+
+        .modal-body {
+            font-size: 13px;
+            color: var(--ink-silver);
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .statusbar {
+            height: 28px;
+            background: var(--bg-obsidian);
+            border-top: 1px solid var(--line-etched);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--ink-ash);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- top bar -->
+    <header class="titlebar pywebview-drag-region">
+        <div class="brand-cluster">
+            <span class="brand-logo">TAOS</span>
+            <span class="brand-sub">Steam Achievement Manager</span>
+        </div>
+
+        <!-- quick commands -->
+        <div class="quick-commands">
+            <span class="qc-label">Quick Commands:</span>
+            <button class="btn-qc" onclick="TAOS_UI.confirmGlobalAction('unlock_all')">
+                Unlock All Games (100%)
+            </button>
+            <button class="btn-qc muted" onclick="TAOS_UI.confirmGlobalAction('lock_all')">
+                Lock All Games (0%)
+            </button>
+            <button class="btn-qc restore" onclick="TAOS_UI.confirmGlobalAction('restore_original')" title="Setzt alle Spiele exakt auf den Stand beim ersten Start zurück. Achtung: Seitdem verdiente Achievements werden dabei ebenfalls entfernt.">
+                &#8634; Reset to Original
+            </button>
+            <button class="btn-qc muted" onclick="TAOS_UI.openSettingsModal()">
+                API Key
+            </button>
+        </div>
+
+        <div class="window-controls">
+            <button class="win-btn" onclick="TAOS_UI.winMinimize()">&#8212;</button>
+            <button class="win-btn" onclick="TAOS_UI.winMaximize()">&#9633;</button>
+            <button class="win-btn close" onclick="TAOS_UI.winClose()">&#10005;</button>
+        </div>
+    </header>
+
+    <!-- workspace -->
+    <main class="workspace">
+
+        <!-- game library -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title-row">
+                    <span class="section-label">Spiele-Bibliothek (<span id="lib-count">0</span>)</span>
+                    <button class="btn-small" onclick="TAOS_UI.rescanLibrary()">Rescan</button>
+                </div>
+
+                <input type="text" id="game-search" class="input-etched" placeholder="Spiel in deiner Liste suchen..." oninput="TAOS_UI.renderGamesList()">
+
+                <!-- add a game that is not in the local cache yet -->
+                <div class="add-game-row">
+                    <input type="text" id="add-game-input" class="input-etched" placeholder="Fehlendes Spiel? Name oder AppID..." oninput="TAOS_UI.onAddInput()" onkeydown="if(event.key==='Enter'){ event.preventDefault(); TAOS_UI.addMissingGame(); } else if(event.key==='Escape'){ TAOS_UI.hideSearchResults(); }">
+                    <button class="btn-small" onclick="TAOS_UI.addMissingGame()">+ Laden</button>
+                </div>
+                <div class="add-results" id="add-game-results"></div>
+            </div>
+
+            <div class="games-list" id="games-list-container"></div>
+        </aside>
+
+        <!-- game details -->
+        <section class="stage">
+
+            <div class="empty-stage" id="empty-stage">
+                <h1 class="empty-title">WÄHLE EIN SPIEL AUS</h1>
+                <p class="empty-subtitle">
+                    Klicke links auf ein Spiel, um deine echten Steam-Achievements zu sehen, einzeln zu bearbeiten oder auf deinen ursprünglichen Stand zurückzusetzen.
+                </p>
+            </div>
+
+            <div class="game-stage" id="game-stage">
+                <div class="stage-hero">
+                    <div class="hero-top">
+                        <div class="hero-game-cluster">
+                            <img id="stage-banner" class="hero-banner-img" src="" alt="Cover">
+                            <div class="hero-title-group">
+                                <span class="hero-meta-tag" id="stage-appid">AppID: 000000</span>
+                                <h2 class="hero-game-title" id="stage-title">GAME TITLE</h2>
+                            </div>
+                        </div>
+
+                        <div class="hero-stats-box">
+                            <div class="stat-unit">
+                                <span class="stat-value" id="stage-unlocked-count">0 / 0</span>
+                                <span class="stat-label">Achievements</span>
+                            </div>
+                            <div class="stat-sep"></div>
+                            <div class="stat-unit">
+                                <span class="stat-value" id="stage-percentage">0%</span>
+                                <span class="stat-label">Fortschritt</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="engraved-progress-track">
+                        <div class="engraved-progress-fill" id="stage-progress-bar"></div>
+                    </div>
+
+                    <div class="stage-toolbar">
+                        <div class="filter-tabs">
+                            <button class="tab-btn active" onclick="TAOS_UI.setAchFilter('all', this)">Alle</button>
+                            <button class="tab-btn" onclick="TAOS_UI.setAchFilter('unlocked', this)">Freigeschaltet</button>
+                            <button class="tab-btn" onclick="TAOS_UI.setAchFilter('locked', this)">Gesperrt</button>
+                        </div>
+
+                        <input type="text" id="ach-search" class="input-etched" style="max-width: 240px;" placeholder="Achievement suchen..." oninput="TAOS_UI.renderAchievements()">
+
+                        <div class="bulk-actions-group">
+                            <button class="btn-action secondary" onclick="TAOS_UI.resetSingleGame()" title="Setzt dieses Spiel auf deinen Original-Stand zurück. Achtung: Seit dem Backup verdiente Achievements werden dabei ebenfalls entfernt.">
+                                &#8634; Original-Stand
+                            </button>
+                            <button class="btn-action secondary" onclick="TAOS_UI.bulkGame(false)">
+                                Alle sperren (0%)
+                            </button>
+                            <button class="btn-action" onclick="TAOS_UI.bulkGame(true)">
+                                Alle freischalten (100%)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="achievements-scroll">
+                    <div class="achievements-grid" id="achievements-container"></div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- global actions -->
+    <div class="modal-overlay" id="master-modal">
+        <div class="modal-box">
+            <h3 class="modal-title" id="master-modal-title">ALLE SPIELE BEARBEITEN</h3>
+            <p class="modal-body" id="master-modal-desc"></p>
+
+            <div id="master-progress-area" style="display:none; flex-direction:column; gap:8px;">
+                <div style="display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:11px;">
+                    <span id="master-status-game">Starte...</span>
+                    <span id="master-status-count">0 / 0</span>
+                </div>
+                <div class="engraved-progress-track">
+                    <div class="engraved-progress-fill" id="master-progress-bar"></div>
+                </div>
+            </div>
+
+            <div class="modal-actions" id="master-modal-buttons">
+                <button class="btn-action secondary" onclick="TAOS_UI.closeMasterModal()">Abbrechen</button>
+                <button class="btn-action" id="master-confirm-btn">Jetzt ausführen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- api key -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-box">
+            <h3 class="modal-title">STEAM WEB API KEY</h3>
+            <p class="modal-body">
+                Damit TAOS auch Spiele findet, die du gestern erst gekauft und noch nie installiert hast (oder wenn dein Profil privat ist), kannst du hier deinen Steam Web API Key eintragen (kostenlos unter <i>steamcommunity.com/dev/apikey</i>).
+            </p>
+            <input type="password" id="api-key-input" class="input-etched" placeholder="Steam Web API Key einfügen...">
+            <div class="modal-actions">
+                <button class="btn-action secondary" onclick="TAOS_UI.closeSettingsModal()">Schließen</button>
+                <button class="btn-action" onclick="TAOS_UI.saveApiKey()">Speichern & Scannen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- status bar -->
+    <footer class="statusbar">
+        <div>
+            <span id="status-mode">Lade...</span> &nbsp;|&nbsp; <span id="status-user">Account wird erkannt...</span> &nbsp;|&nbsp; <span id="status-backup">Original-Backup: –</span>
+        </div>
+        <div>
+            <span id="status-action">Bereit</span>
+        </div>
+    </footer>
+
+    <script>
+        const TAOS_UI = {
+            games: [],
+            activeAppId: null,
+            activeAchievements: [],
+            currentFilter: 'all',
+            pendingGlobalMode: null,
+            searchResults: [],
+            _searchTimer: null,
+            _searchSeq: 0,
+            _lastSearchQuery: '',
+            backupCreatedAt: 0,
+
+            async init() {
+                this.setStatus("Scanne lokale Steam-Datenbank & erstelle Original-Backup...");
+                try {
+                    const res = await window.pywebview.api.initialize_system();
+                    this.games = res.games || [];
+
+                    document.getElementById('status-user').textContent = `Account: ${res.user}`;
+                    document.getElementById('status-mode').textContent =
+                        (res.live_dll && res.steam_running)
+                            ? "LIVE STEAMWORKS AKTIV – Änderungen gehen direkt an Steam"
+                            : (res.live_dll
+                                ? "STEAM NICHT GESTARTET – bitte Steam öffnen"
+                                : "NUR LESEMODUS – keine steam_api64.dll gefunden");
+
+                    this.updateBackupStatus(res);
+                    this.renderGamesList();
+                    this.setStatus("Bereit.");
+                } catch (err) {
+                    console.error(err);
+                    this.setStatus("Fehler beim Initialisieren.");
+                }
+            },
+
+            async rescanLibrary() {
+                this.setStatus("Scanne Bibliothek...");
+                const res = await window.pywebview.api.initialize_system();
+                this.games = res.games || [];
+                this.updateBackupStatus(res);
+                this.renderGamesList();
+                this.setStatus("Bibliothek aktualisiert.");
+            },
+
+            updateBackupStatus(res) {
+                const el = document.getElementById('status-backup');
+                this.backupCreatedAt = res.backup_created_at || 0;
+                if (!el) return;
+                if (res.backup_account_mismatch) {
+                    el.textContent = '⚠ Original-Backup gehört zu einem anderen Steam-Account';
+                    return;
+                }
+                if (res.backup_error) {
+                    el.textContent = `⚠ Backup konnte nicht gespeichert werden: ${res.backup_error}`;
+                    return;
+                }
+                const count = res.snapshot_count || 0;
+                let text = `Original-Backup: ${count} Spiele`;
+                if (res.backup_created_at) {
+                    try {
+                        const date = new Date(res.backup_created_at * 1000);
+                        text += ` (${date.toLocaleDateString('de-DE')})`;
+                    } catch (err) { /* Datum ist optional */ }
+                }
+                el.textContent = text;
+            },
+
+            /* store search */
+            onAddInput() {
+                const query = document.getElementById('add-game-input').value.trim();
+                clearTimeout(this._searchTimer);
+
+                if (query.length < 2) {
+                    this.hideSearchResults();
+                    return;
+                }
+
+                const seq = ++this._searchSeq;
+                this._searchTimer = setTimeout(() => this.performSearch(query, seq), 320);
+            },
+
+            async performSearch(query, seq) {
+                this.setStatus(`Suche '${query}'...`);
+                try {
+                    const res = await window.pywebview.api.search_games(query);
+                    if (seq !== this._searchSeq) return;
+                    this._lastSearchQuery = query;
+                    this.searchResults = res.results || [];
+                    this.renderSearchResults();
+                    this.setStatus(
+                        this.searchResults.length
+                            ? `${this.searchResults.length} Treffer für '${query}'`
+                            : `Keine Treffer für '${query}'`
+                    );
+                } catch (err) {
+                    console.error(err);
+                    this.setStatus("Suche fehlgeschlagen.");
+                }
+            },
+
+            renderSearchResults() {
+                const box = document.getElementById('add-game-results');
+                box.innerHTML = '';
+                box.classList.add('open');
+
+                if (!this.searchResults.length) {
+                    box.innerHTML = '<div class="add-empty">Keine Spiele gefunden. Versuche einen anderen Titel oder die AppID.</div>';
+                    return;
+                }
+
+                this.searchResults.forEach(result => {
+                    const el = document.createElement('div');
+                    el.className = 'add-result';
+                    el.onclick = () => this.pickSearchResult(result.app_id, result.name);
+
+                    const total = result.total_ach || 0;
+                    const unlocked = result.unlocked_ach || 0;
+                    const pct = total > 0 ? Math.round((unlocked / total) * 100) : 0;
+
+                    let badge = 'Achievements unbekannt';
+                    if (result.achievements_loaded && total > 0) {
+                        badge = `${unlocked}/${total} · ${pct}%`;
+                    } else if (result.in_library) {
+                        badge = 'In Bibliothek';
+                    }
+
+                    const source = result.in_library ? 'Bibliothek' : 'Steam Store';
+                    const installState = result.installed ? 'Installiert' : 'Nicht installiert';
+
+                    el.innerHTML = `
+                        <img src="${this.escapeHtml(result.image || '')}" loading="lazy" onerror="this.style.visibility='hidden'">
+                        <div class="add-result-meta">
+                            <div class="add-result-top">
+                                <span class="add-result-name">${this.escapeHtml(result.name)}</span>
+                                <span class="add-result-badge">${this.escapeHtml(badge)}</span>
+                            </div>
+                            <div class="add-result-sub">${this.escapeHtml(source)} · ${this.escapeHtml(installState)} · AppID ${result.app_id}</div>
+                        </div>
+                    `;
+                    box.appendChild(el);
+                });
+            },
+
+            async pickSearchResult(appId, name) {
+                this.hideSearchResults();
+                document.getElementById('add-game-input').value = '';
+                this.setStatus(`Lade '${name}' aus Steam...`);
+
+                const res = await window.pywebview.api.add_game_from_search(appId, name || '');
+                if (res.status === 'ok' && res.game) {
+                    this.games = res.games || this.games;
+                    this.renderGamesList();
+                    await this.selectGame(res.game.app_id);
+                    this.setStatus(`'${res.game.name}' hinzugefügt und geladen.`);
+                } else {
+                    this.setStatus(`'${name}' konnte nicht geladen werden.`);
+                }
+            },
+
+            hideSearchResults() {
+                this._searchSeq++;
+                this.searchResults = [];
+                const box = document.getElementById('add-game-results');
+                if (box) {
+                    box.classList.remove('open');
+                    box.innerHTML = '';
+                }
+            },
+
+            async addMissingGame() {
+                const input = document.getElementById('add-game-input');
+                const query = input.value.trim();
+                if (!query) return;
+
+                // enter should pick the first visible result
+                if (this.searchResults.length && this._lastSearchQuery === query) {
+                    const first = this.searchResults[0];
+                    await this.pickSearchResult(first.app_id, first.name);
+                    return;
+                }
+
+                this.setStatus(`Suche und lade Spiel '${query}'...`);
+                const res = await window.pywebview.api.add_missing_game(query);
+                if (res.status === 'ok' && res.game) {
+                    this.games = res.games || this.games;
+                    input.value = '';
+                    this.hideSearchResults();
+                    this.renderGamesList();
+                    await this.selectGame(res.game.app_id);
+                    this.setStatus(`'${res.game.name}' erfolgreich hinzugefügt!`);
+                } else {
+                    this.setStatus(`Spiel '${query}' konnte nicht gefunden werden.`);
+                }
+            },
+
+            renderGamesList() {
+                const container = document.getElementById('games-list-container');
+                const query = document.getElementById('game-search').value.toLowerCase().trim();
+
+                const filtered = this.games.filter(g =>
+                    g.name.toLowerCase().includes(query) || String(g.app_id).includes(query)
+                );
+
+                document.getElementById('lib-count').textContent = filtered.length;
+                container.innerHTML = '';
+
+                filtered.forEach(game => {
+                    const el = document.createElement('div');
+                    el.className = `game-item ${game.app_id === this.activeAppId ? 'active' : ''}`;
+                    el.onclick = () => this.selectGame(game.app_id);
+
+                    const total = game.total_ach || 0;
+                    const unlocked = game.unlocked_ach || 0;
+                    const pct = total > 0 ? Math.round((unlocked / total) * 100) : 0;
+
+                    // keep the counter small; the bar tells the rest of the story
+                    const countLabel = game.achievements_loaded && total > 0
+                        ? `${unlocked} / ${total}`
+                        : `#${game.app_id}`;
+                    const pctLabel = game.achievements_loaded && total > 0 ? `${pct}%` : '—';
+
+                    el.innerHTML = `
+                        <div class="game-thumb-wrap">
+                            <img class="game-thumb" src="${game.image}" loading="lazy" onerror="this.style.display='none'">
+                        </div>
+                        <div class="game-meta">
+                            <div class="game-item-top">
+                                <span class="game-name">${this.escapeHtml(game.name)}</span>
+                                <span class="game-count-badge">${countLabel}</span>
+                            </div>
+                            <div class="game-bar-row">
+                                <div class="mini-bar-track">
+                                    <div class="mini-bar-fill" style="width: ${pct}%"></div>
+                                </div>
+                                <span class="game-pct">${pctLabel}</span>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(el);
+                });
+            },
+
+            async selectGame(appId) {
+                this.activeAppId = appId;
+                this.renderGamesList();
+                this.setStatus(`Lade echte Achievements für AppID ${appId}...`);
+
+                document.getElementById('empty-stage').style.display = 'none';
+                document.getElementById('game-stage').classList.add('visible');
+
+                const res = await window.pywebview.api.load_game_details(appId);
+                this.activeAchievements = res.achievements || [];
+
+                const idx = this.games.findIndex(g => g.app_id === appId);
+                if (idx !== -1 && res.game) {
+                    this.games[idx] = res.game;
+                }
+
+                this.updateStageHeader(res.game);
+                this.renderAchievements();
+                this.renderGamesList();
+                const prefix = res.live_error ? `⚠ ${res.live_error} | ` : '';
+                this.setStatus(`${prefix}${res.game ? res.game.name : appId} geladen.`);
+            },
+
+            updateStageHeader(game) {
+                if (!game) return;
+                document.getElementById('stage-banner').src = game.image || '';
+                document.getElementById('stage-appid').textContent = `AppID: ${game.app_id} ${game.installed ? '(Installiert)' : '(Nicht installiert / Cloud)'}`;
+                document.getElementById('stage-title').textContent = game.name;
+
+                const total = game.total_ach || 0;
+                const unlocked = game.unlocked_ach || 0;
+                const pct = total > 0 ? Math.round((unlocked / total) * 100) : 0;
+
+                document.getElementById('stage-unlocked-count').textContent = `${unlocked} / ${total}`;
+                document.getElementById('stage-percentage').textContent = `${pct}%`;
+                document.getElementById('stage-progress-bar').style.width = `${pct}%`;
+            },
+
+            setAchFilter(filterType, btnEl) {
+                this.currentFilter = filterType;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btnEl.classList.add('active');
+                this.renderAchievements();
+            },
+
+            renderAchievements() {
+                const container = document.getElementById('achievements-container');
+                const search = document.getElementById('ach-search').value.toLowerCase().trim();
+                container.innerHTML = '';
+
+                if (this.activeAchievements.length === 0) {
+                    container.innerHTML = `<div style="color:var(--ink-ash); grid-column: 1/-1; padding: 20px 0;">
+                        Für dieses Spiel wurden noch keine lokalen Steam-Achievement-Daten gefunden (oder das Spiel hat keine Steam-Achievements). Tipp: Trage oben deinen Steam API Key ein, falls du das Spiel noch nie gestartet hast.
+                    </div>`;
+                    return;
+                }
+
+                const filtered = this.activeAchievements.filter(ach => {
+                    if (this.currentFilter === 'unlocked' && !ach.unlocked) return false;
+                    if (this.currentFilter === 'locked' && ach.unlocked) return false;
+                    if (search) {
+                        return (ach.title || '').toLowerCase().includes(search) ||
+                               (ach.description || '').toLowerCase().includes(search) ||
+                               (ach.id || '').toLowerCase().includes(search);
+                    }
+                    return true;
+                });
+
+                filtered.forEach(ach => {
+                    const card = document.createElement('div');
+                    card.className = `ach-card ${ach.unlocked ? 'unlocked' : ''}`;
+
+                    const iconSrc = ach.unlocked ? (ach.icon || '') : (ach.icon_gray || ach.icon || '');
+                    const btnLabel = ach.unlocked ? 'UNLOCKED' : 'LOCKED';
+
+                    card.innerHTML = `
+                        <div class="ach-left">
+                            ${iconSrc ? `<img class="ach-icon" src="${iconSrc}" loading="lazy" onerror="this.style.display='none'">` : ''}
+                            <div class="ach-info">
+                                <div class="ach-title">${this.escapeHtml(ach.title)}</div>
+                                <div class="ach-desc">${this.escapeHtml(ach.description || ach.id)}</div>
+                            </div>
+                        </div>
+                        <button class="ach-toggle-btn" onclick="TAOS_UI.toggleSingle('${this.escapeHtml(ach.id)}', ${!ach.unlocked})">
+                            ${btnLabel}
+                        </button>
+                    `;
+                    container.appendChild(card);
+                });
+            },
+
+            async toggleSingle(achId, targetUnlockState) {
+                if (!this.activeAppId) return;
+                const res = await window.pywebview.api.toggle_achievement(this.activeAppId, achId, targetUnlockState);
+                if (res.status === 'ok') {
+                    const ach = this.activeAchievements.find(a => a.id === achId);
+                    if (ach) ach.unlocked = targetUnlockState;
+
+                    const gIdx = this.games.findIndex(g => g.app_id === this.activeAppId);
+                    if (gIdx !== -1 && res.game_summary) {
+                        this.games[gIdx] = res.game_summary;
+                        this.updateStageHeader(res.game_summary);
+                    }
+                    this.renderAchievements();
+                    this.renderGamesList();
+                } else {
+                    this.setStatus(`⚠ ${res.message || 'Steam hat die Änderung nicht bestätigt.'}`);
+                }
+            },
+
+            async bulkGame(unlock) {
+                if (!this.activeAppId) return;
+                const res = await window.pywebview.api.bulk_game_action(this.activeAppId, unlock);
+                if (res.status === 'ok') {
+                    this.activeAchievements = res.achievements || [];
+                    const gIdx = this.games.findIndex(g => g.app_id === this.activeAppId);
+                    if (gIdx !== -1 && res.game_summary) {
+                        this.games[gIdx] = res.game_summary;
+                        this.updateStageHeader(res.game_summary);
+                    }
+                    this.renderAchievements();
+                    this.renderGamesList();
+                    this.setStatus(unlock ? "Alle Achievements in Steam freigeschaltet." : "Alle Achievements in Steam gesperrt.");
+                } else {
+                    this.setStatus(`⚠ ${res.message || 'Steam hat die Änderung nicht bestätigt.'}`);
+                }
+            },
+
+            async resetSingleGame() {
+                if (!this.activeAppId) return;
+                const res = await window.pywebview.api.reset_single_game_to_original(this.activeAppId);
+                if (res.status === 'ok') {
+                    this.activeAchievements = res.achievements || [];
+                    const gIdx = this.games.findIndex(g => g.app_id === this.activeAppId);
+                    if (gIdx !== -1 && res.game_summary) {
+                        this.games[gIdx] = res.game_summary;
+                        this.updateStageHeader(res.game_summary);
+                    }
+                    this.renderAchievements();
+                    this.renderGamesList();
+                    this.setStatus("Spiel wurde exakt auf deinen Original-Stand zurückgesetzt!");
+                } else {
+                    this.setStatus(`⚠ ${res.message || 'Steam hat die Änderung nicht bestätigt.'}`);
+                }
+            },
+
+            /* global actions */
+            confirmGlobalAction(mode) {
+                this.pendingGlobalMode = mode;
+                const titleEl = document.getElementById('master-modal-title');
+                const descEl = document.getElementById('master-modal-desc');
+                const confirmBtn = document.getElementById('master-confirm-btn');
+
+                document.getElementById('master-progress-area').style.display = 'none';
+                document.getElementById('master-modal-buttons').style.display = 'flex';
+
+                if (mode === 'unlock_all') {
+                    titleEl.textContent = "ALLE SPIELE AUF 100% FREISCHALTEN";
+                    descEl.textContent = "Möchtest du wirklich in jedem gelisteten Spiel deiner Bibliothek alle Achievements freischalten? Steam muss dafür laufen und die Spiele sollten geschlossen sein. (Dein vorheriger Original-Stand bleibt im Backup gespeichert).";
+                    confirmBtn.textContent = "Ja, alle auf 100% setzen";
+                } else if (mode === 'lock_all') {
+                    titleEl.textContent = "ALLE SPIELE AUF 0% SPERREN";
+                    descEl.textContent = "Möchtest du wirklich in allen Spielen alle Achievements komplett auf 0 zurücksetzen? Steam muss dafür laufen und die Spiele sollten geschlossen sein.";
+                    confirmBtn.textContent = "Ja, alle auf 0% sperren";
+                } else if (mode === 'restore_original') {
+                    titleEl.textContent = "RESET AUF DEINEN ORIGINAL-STAND";
+                    const backupDate = this.backupCreatedAt
+                        ? new Date(this.backupCreatedAt * 1000).toLocaleDateString('de-DE')
+                        : "beim ersten Start";
+                    descEl.textContent = `Alle Spiele werden exakt auf den Achievement-Stand vom ${backupDate} zurückgesetzt. Achtung: Achievements, die du seitdem regulär verdient hast, werden dabei ebenfalls entfernt. Steam muss dafür laufen und die Spiele sollten geschlossen sein.`;
+                    confirmBtn.textContent = "Original-Stand wiederherstellen";
+                }
+
+                confirmBtn.onclick = () => this.executeGlobalAction(mode);
+                document.getElementById('master-modal').classList.add('open');
+            },
+
+            closeMasterModal() {
+                document.getElementById('master-modal').classList.remove('open');
+            },
+
+            async executeGlobalAction(mode) {
+                document.getElementById('master-modal-buttons').style.display = 'none';
+                document.getElementById('master-progress-area').style.display = 'flex';
+                document.getElementById('master-progress-bar').style.width = '0%';
+                await window.pywebview.api.global_master_action(mode);
+            },
+
+            onGlobalProgress(data) {
+                const pct = Math.round((data.current / data.total) * 100);
+                document.getElementById('master-status-game').textContent = data.game_name;
+                document.getElementById('master-status-count').textContent = `${data.current} / ${data.total} (${pct}%)`;
+                document.getElementById('master-progress-bar').style.width = `${pct}%`;
+            },
+
+            onGlobalComplete(data) {
+                this.games = data.games || this.games;
+                this.renderGamesList();
+                if (this.activeAppId) {
+                    this.selectGame(this.activeAppId);
+                }
+                const errors = data.errors || [];
+                setTimeout(() => {
+                    this.closeMasterModal();
+                    if (errors.length) {
+                        this.setStatus(
+                            `⚠ ${errors.length} Spiel(e) konnten nicht geschrieben werden. ` +
+                            `Erstes: ${errors[0].game_name} – ${errors[0].message}`
+                        );
+                    } else {
+                        this.setStatus("Globale Aktion erfolgreich in Steam abgeschlossen!");
+                    }
+                }, 400);
+            },
+
+            openSettingsModal() { document.getElementById('settings-modal').classList.add('open'); },
+            closeSettingsModal() { document.getElementById('settings-modal').classList.remove('open'); },
+
+            async saveApiKey() {
+                const key = document.getElementById('api-key-input').value;
+                this.closeSettingsModal();
+                this.setStatus("API Key gespeichert – lade komplette Account-Bibliothek...");
+                const res = await window.pywebview.api.set_api_key(key);
+                if (res.games) {
+                    this.games = res.games;
+                    this.renderGamesList();
+                }
+                this.setStatus("Komplette Bibliothek über Steam API synchronisiert.");
+            },
+
+            winMinimize() { window.pywebview.api.window_minimize(); },
+            winMaximize() { window.pywebview.api.window_toggle_maximize(); },
+            winClose() { window.pywebview.api.window_close(); },
+
+            setStatus(msg) { document.getElementById('status-action').textContent = msg; },
+
+            escapeHtml(str) {
+                if (!str) return '';
+                return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            }
+        };
+
+        window.TAOS_UI = TAOS_UI;
+        window.addEventListener('pywebviewready', () => TAOS_UI.init());
+    </script>
+</body>
+</html>

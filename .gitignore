@@ -1,0 +1,34 @@
+# local runtime data
+taos_initial_snapshot*.json
+taos_appnames_cache.json
+taos_progress_cache.json
+steam_appid.txt
+
+# local Steamworks binaries
+assets/steam_api64.dll
+assets/steam_api.dll
+
+# python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# editors / os
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# build output
+build/
+dist/
+*.spec
+*.log
