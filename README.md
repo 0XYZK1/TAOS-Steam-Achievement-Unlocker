@@ -90,8 +90,8 @@ To build the executable:
 <div align="center">
 
 **TAOS**  
-*Design. Code. Silence.*
+*The art of Software*
 
-© 2026 Dox / Xyk
+© 2026 XYZK
 
 </div>
