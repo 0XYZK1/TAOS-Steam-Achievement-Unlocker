@@ -116,5 +116,11 @@ def run_steamworks_worker(app_id: int, action: str, payload: str):
         with suppress(OSError):
             Path("steam_appid.txt").unlink(missing_ok=True)
 
-    print("TAOS_IPC_START" + json.dumps(result) + "TAOS_IPC_END")
+    ipc_file = os.environ.get("TAOS_IPC_FILE")
+    if ipc_file:
+        with suppress(OSError):
+            Path(ipc_file).write_text(json.dumps(result), encoding="utf-8")
+    else:
+        payload = "TAOS_IPC_START" + json.dumps(result) + "TAOS_IPC_END"
+    os.write(1, payload.encode("utf-8"))
     sys.exit(0)

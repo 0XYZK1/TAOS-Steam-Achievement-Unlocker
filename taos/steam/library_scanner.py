@@ -20,9 +20,6 @@ class LibraryScanner:
             for game in web_api.fetch_owned_games(api_key, self.engine.steam_id64):
                 self._register(game["appid"], game["name"], installed)
 
-        if self.engine.steam_id64:
-            for game in web_api.fetch_community_games(self.engine.steam_id64):
-                self._register(game["appid"], game["name"], installed)
 
         self._local_caches(installed)
         self._fill_missing_names()

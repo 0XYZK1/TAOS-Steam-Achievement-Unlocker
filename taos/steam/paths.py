@@ -1,11 +1,9 @@
 """Locate Steam and figure out which account is active."""
 
-import subprocess
+import ctypes
+import re
 import sys
-from contextlib import suppress
 from pathlib import Path
-
-import vdf
 
 from taos.config import STEAM_ID64_BASE
 
@@ -15,13 +13,15 @@ if sys.platform == "win32":
 
 def find_steam_path() -> Path | None:
     if sys.platform == "win32":
-        with suppress(OSError):
+        try:
             key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam")
             value, _ = winreg.QueryValueEx(key, "SteamPath")
             winreg.CloseKey(key)
             path = Path(value)
             if path.exists():
                 return path
+        except OSError:
+            pass
 
     for path in (
         Path("C:/Program Files (x86)/Steam"),
@@ -34,29 +34,62 @@ def find_steam_path() -> Path | None:
     return None
 
 
+def _active_account_id() -> str:
+    if sys.platform != "win32":
+        return ""
+    try:
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam\ActiveProcess"
+        )
+        value, _ = winreg.QueryValueEx(key, "ActiveUser")
+        winreg.CloseKey(key)
+    except OSError:
+        return ""
+    return str(int(value)) if value else ""
+
+
+def _read_login_users(steam_path: Path) -> dict[str, dict[str, str]]:
+    login_file = steam_path / "config" / "loginusers.vdf"
+    if not login_file.exists():
+        return {}
+
+    try:
+        text = login_file.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return {}
+
+    users = {}
+    for match in re.finditer(r'"(\d{17})"\s*\{(.*?)\n\s*\}', text, re.S):
+        steam_id, block = match.group(1), match.group(2)
+        persona = re.search(r'"PersonaName"\s*"([^"]*)"', block)
+        recent = re.search(r'"MostRecent"\s*"([^"]*)"', block)
+        users[steam_id] = {
+            "PersonaName": persona.group(1) if persona else "STEAM USER",
+            "MostRecent": recent.group(1) if recent else "0",
+        }
+    return users
+
+
 def detect_active_user(steam_path: Path | None) -> tuple[str, str, str]:
     """Returns (steam_id64, account_id3, persona_name)."""
     if not steam_path:
         return "", "", "STEAM USER"
 
+    users = _read_login_users(steam_path)
+    active_id = _active_account_id()
     steam_id = ""
     persona = "STEAM USER"
-    login_file = steam_path / "config" / "loginusers.vdf"
 
-    if login_file.exists():
-        try:
-            with open(login_file, "r", encoding="utf-8", errors="ignore") as fp:
-                users = vdf.load(fp).get("users", {})
-        except Exception:
-            users = {}
+    for sid, info in users.items():
+        matches_active = bool(active_id) and str(int(sid) - STEAM_ID64_BASE) == active_id
+        if not steam_id or matches_active or info.get("MostRecent") == "1":
+            steam_id = sid
+            persona = info.get("PersonaName", "STEAM USER")
+            if matches_active:
+                break
 
-        for sid, info in users.items():
-            recent = str(info.get("MostRecent", "0")) == "1"
-            if not steam_id or recent:
-                steam_id = str(sid)
-                persona = info.get("PersonaName", "STEAM USER")
-                if recent:
-                    break
+    if not steam_id and active_id:
+        steam_id = str(int(active_id) + STEAM_ID64_BASE)
 
     account_id = ""
     if steam_id.isdigit():
@@ -69,13 +102,19 @@ def is_steam_running() -> bool:
         return False
 
     try:
-        output = subprocess.check_output(
-            ["tasklist", "/FI", "IMAGENAME eq steam.exe", "/NH"],
-            text=True,
-            errors="replace",
-            timeout=5,
-            creationflags=subprocess.CREATE_NO_WINDOW,
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam\ActiveProcess"
         )
-    except (OSError, subprocess.SubprocessError):
+        pid, _ = winreg.QueryValueEx(key, "pid")
+        winreg.CloseKey(key)
+    except OSError:
         return False
-    return "steam.exe" in output.lower()
+
+    if not pid:
+        return False
+
+    handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, int(pid))
+    if not handle:
+        return False
+    ctypes.windll.kernel32.CloseHandle(handle)
+    return True

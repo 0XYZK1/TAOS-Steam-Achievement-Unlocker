@@ -29,6 +29,8 @@ Desktop.ini
 
 # build output
 build/
+build-*/
 dist/
+dist-*/
 *.spec
 *.log

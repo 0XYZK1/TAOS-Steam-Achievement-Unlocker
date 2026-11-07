@@ -7,6 +7,7 @@ binary to git. Steam has to be running; that is the only hard requirement.
 
 import ctypes
 import os
+import struct
 import time
 from contextlib import suppress
 from pathlib import Path
@@ -69,26 +70,83 @@ def _candidates(steam_path: Path | None):
             yield from common.glob(pattern)
 
 
+def _pe_exports(path: Path) -> set[str]:
+    """Read the export names without loading a game DLL into our process."""
+    data = path.read_bytes()
+    if len(data) < 0x40 or data[:2] != b"MZ":
+        return set()
+
+    pe = struct.unpack_from("<I", data, 0x3C)[0]
+    if data[pe:pe + 4] != b"PE\0\0":
+        return set()
+
+    coff = pe + 4
+    machine = struct.unpack_from("<H", data, coff)[0]
+    if (machine == 0x8664) != _IS_64BIT:
+        return set()
+
+    sections_count = struct.unpack_from("<H", data, coff + 2)[0]
+    optional_size = struct.unpack_from("<H", data, coff + 16)[0]
+    optional = coff + 20
+    magic = struct.unpack_from("<H", data, optional)[0]
+    if magic == 0x20B:
+        dirs = optional + 112
+    elif magic == 0x10B:
+        dirs = optional + 96
+    else:
+        return set()
+
+    export_rva, _ = struct.unpack_from("<II", data, dirs)
+    if not export_rva:
+        return set()
+
+    sections = []
+    entry = optional + optional_size
+    for _ in range(sections_count):
+        vsize, vaddr, rawsize, rawptr = struct.unpack_from("<IIII", data, entry + 8)
+        sections.append((vaddr, max(vsize, rawsize), rawptr))
+        entry += 40
+
+    def offset(rva):
+        for vaddr, size, rawptr in sections:
+            if vaddr <= rva < vaddr + size:
+                return rawptr + (rva - vaddr)
+        return None
+
+    export_offset = offset(export_rva)
+    if export_offset is None:
+        return set()
+
+    name_count = struct.unpack_from("<I", data, export_offset + 24)[0]
+    names_rva = struct.unpack_from("<I", data, export_offset + 32)[0]
+    names_offset = offset(names_rva)
+    if names_offset is None:
+        return set()
+
+    names = set()
+    for index in range(name_count):
+        name_rva = struct.unpack_from("<I", data, names_offset + index * 4)[0]
+        name_offset = offset(name_rva)
+        if name_offset is None:
+            continue
+        end = data.find(b"\0", name_offset)
+        if end != -1:
+            names.add(data[name_offset:end].decode("ascii", "ignore"))
+    return names
+
+
 def _looks_usable(path: Path) -> bool:
     try:
-        dll = ctypes.WinDLL(str(path))
+        exports = _pe_exports(path)
     except OSError:
         return False
 
-    usable = False
-    try:
-        usable = (
-            all(hasattr(dll, name) for name in _REQUIRED)
-            and any(hasattr(dll, name) for name in _STATS_GETTERS)
-            and (hasattr(dll, "SteamAPI_InitFlat") or hasattr(dll, "SteamAPI_Init"))
-            and hasattr(dll, "SteamAPI_ISteamUserStats_RequestCurrentStats")
-        )
-    finally:
-        # Don't keep a game DLL mapped just because we peeked at it.
-        with suppress(Exception):
-            ctypes.windll.kernel32.FreeLibrary(dll._handle)
-
-    return usable
+    return (
+        all(name in exports for name in _REQUIRED)
+        and any(name in exports for name in _STATS_GETTERS)
+        and ("SteamAPI_InitFlat" in exports or "SteamAPI_Init" in exports)
+        and "SteamAPI_ISteamUserStats_RequestCurrentStats" in exports
+    )
 
 
 def find_steam_api_dll(

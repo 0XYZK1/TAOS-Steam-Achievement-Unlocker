@@ -28,6 +28,7 @@ class AppNamesStore:
 
     def save(self):
         try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path.write_text(
                 json.dumps(self.data, ensure_ascii=False),
                 encoding="utf-8",

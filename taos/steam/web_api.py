@@ -33,27 +33,6 @@ def fetch_owned_games(api_key: str, steam_id64: str) -> list[dict]:
     ]
 
 
-def fetch_community_games(steam_id64: str) -> list[dict]:
-    if not steam_id64:
-        return []
-
-    url = f"https://steamcommunity.com/profiles/{steam_id64}/games?tab=all&xml=1"
-    try:
-        response = session.get(url, timeout=HTTP_TIMEOUT_LONG)
-        if response.status_code != 200 or "<gamesList>" not in response.text:
-            return []
-        root = ET.fromstring(response.text)
-    except (requests.RequestException, ET.ParseError):
-        return []
-
-    games = []
-    for node in root.findall(".//game"):
-        app_id = node.findtext("appID")
-        if app_id and app_id.isdigit():
-            games.append({"appid": int(app_id), "name": node.findtext("name") or ""})
-    return games
-
-
 def fetch_schema(app_id: int, api_key: str) -> list[dict]:
     if not api_key:
         return []

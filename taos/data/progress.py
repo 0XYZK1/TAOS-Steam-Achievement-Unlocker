@@ -70,6 +70,7 @@ class ProgressCache:
         if not self._dirty:
             return
         try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path.write_text(
                 json.dumps({"version": 1, "games": self.games}, ensure_ascii=False),
                 encoding="utf-8",

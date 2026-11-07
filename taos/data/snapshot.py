@@ -90,6 +90,7 @@ class SnapshotStore:
         payload.update(self.data)
 
         try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path.write_text(
                 json.dumps(payload, indent=2, ensure_ascii=False),
                 encoding="utf-8",

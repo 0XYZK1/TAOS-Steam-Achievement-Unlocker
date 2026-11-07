@@ -5,16 +5,19 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import threading
+from contextlib import suppress
 from pathlib import Path
 
 import vdf
 
 from taos.config import (
     APPNAMES_CACHE_FILE,
+    APP_DIR,
+    DATA_DIR,
     ENTRYPOINT,
     PROGRESS_CACHE_FILE,
-    ROOT,
     SNAPSHOT_FILE,
     snapshot_file,
 )
@@ -29,7 +32,9 @@ from taos.steam.paths import detect_active_user, find_steam_path, is_steam_runni
 
 class SteamLibraryEngine:
     def __init__(self, base_dir: Path | None = None):
-        self.base_dir = Path(base_dir) if base_dir else ROOT
+        self.base_dir = Path(base_dir) if base_dir else APP_DIR
+        self.data_dir = DATA_DIR
+        self.data_dir.mkdir(parents=True, exist_ok=True)
         self.steam_path = find_steam_path()
 
         self.games_cache: dict[int, dict] = {}
@@ -602,19 +607,26 @@ class SteamLibraryEngine:
                 ),
             }
 
-        command = [
-            sys.executable,
-            str(ENTRYPOINT),
-            "--taos-worker",
-            str(app_id),
-            action,
-            json.dumps(payload),
-        ]
+        if getattr(sys, "frozen", False):
+            command = [sys.executable, "--taos-worker", str(app_id), action, json.dumps(payload)]
+        else:
+            command = [
+                sys.executable,
+                str(ENTRYPOINT),
+                "--taos-worker",
+                str(app_id),
+                action,
+                json.dumps(payload),
+            ]
         timeout = 30 if action in ("set_bulk", "set_exact_map") else 15
         flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
+        fd, ipc_path = tempfile.mkstemp(prefix="taos_ipc_", suffix=".json")
+        os.close(fd)
+
         env = os.environ.copy()
         env["TAOS_STEAM_API_DLL"] = str(self.steam_api_dll)
+        env["TAOS_IPC_FILE"] = ipc_path
         if self.steam_path:
             env["TAOS_STEAM_PATH"] = str(self.steam_path)
 
@@ -628,19 +640,32 @@ class SteamLibraryEngine:
                     errors="replace",
                     timeout=timeout,
                     creationflags=flags,
-                    cwd=str(self.base_dir),
+                    cwd=str(self.data_dir),
                     env=env,
                 )
+
+            raw = ""
+            with suppress(OSError):
+                raw = Path(ipc_path).read_text(encoding="utf-8").strip()
+
+            if raw:
+                try:
+                    return json.loads(raw)
+                except ValueError:
+                    pass
+
+            output = process.stdout or ""
+            if "TAOS_IPC_START" in output and "TAOS_IPC_END" in output:
+                raw = output.split("TAOS_IPC_START", 1)[1].split("TAOS_IPC_END", 1)[0]
+                try:
+                    return json.loads(raw)
+                except ValueError:
+                    pass
         except (OSError, subprocess.SubprocessError) as exc:
             return {"status": "error", "message": str(exc)}
-
-        output = process.stdout
-        if "TAOS_IPC_START" in output and "TAOS_IPC_END" in output:
-            raw = output.split("TAOS_IPC_START", 1)[1].split("TAOS_IPC_END", 1)[0]
-            try:
-                return json.loads(raw)
-            except ValueError:
-                pass
+        finally:
+            with suppress(OSError):
+                Path(ipc_path).unlink()
 
         return {
             "status": "error",
